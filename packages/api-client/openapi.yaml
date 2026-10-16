@@ -1,0 +1,1282 @@
+openapi: 3.0.3
+info:
+  title: Empire T Barbershop & Beauty API
+  version: 1.0.0
+  description: Public API for the Empire T website. Read endpoints are cached; write
+    endpoints are throttled. Send `?lang=fr` or `?lang=en` (or Accept-Language) to
+    choose the content language.
+paths:
+  /api/v1/bookings/:
+    post:
+      operationId: bookings_create
+      description: Store a booking request and return the prefilled WhatsApp link
+        to the shop.
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - bookings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingCreated'
+          description: ''
+  /api/v1/bookings/slots/:
+    get:
+      operationId: bookings_slots_retrieve
+      description: Start times that can be requested for a date (and optionally a
+        service).
+      parameters:
+      - in: query
+        name: date
+        schema:
+          type: string
+        description: YYYY-MM-DD
+        required: true
+      - in: query
+        name: service
+        schema:
+          type: string
+        description: Service slug
+      tags:
+      - bookings
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlots'
+          description: ''
+  /api/v1/careers/applications/:
+    post:
+      operationId: careers_applications_create
+      description: 'Multipart upload: fields plus one or more `files` parts.'
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - careers
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JobApplicationCreateRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationReceived'
+          description: ''
+  /api/v1/careers/openings/:
+    get:
+      operationId: careers_openings_list
+      description: Open positions. Empty once the recruitment deadline has passed.
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - careers
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobOpening'
+          description: ''
+  /api/v1/categories/:
+    get:
+      operationId: categories_list
+      description: Categories with their active services and starting price (the full
+        price menu).
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - categories
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceCategory'
+          description: ''
+  /api/v1/categories/{slug}/:
+    get:
+      operationId: categories_retrieve
+      description: Categories with their active services and starting price (the full
+        price menu).
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      - in: path
+        name: slug
+        schema:
+          type: string
+          title: Identifiant d'URL
+          description: Utilisé dans l'adresse de l'onglet.
+        required: true
+      tags:
+      - categories
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceCategory'
+          description: ''
+  /api/v1/contact/:
+    post:
+      operationId: contact_create
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactMessageCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContactMessageCreateRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactReceived'
+          description: ''
+  /api/v1/gallery/:
+    get:
+      operationId: gallery_list
+      description: Published photos in display order. Filter with `category` and `featured`.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          title: Catégorie
+          enum:
+          - beauty
+          - cuts
+          - hairstyles
+          - salon
+        description: |-
+          * `cuts` - Coupes
+          * `hairstyles` - Coiffures
+          * `beauty` - Beauty
+          * `salon` - Le salon
+      - in: query
+        name: featured
+        schema:
+          type: boolean
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Nombre de résultats à retourner par page.
+        schema:
+          type: integer
+      tags:
+      - gallery
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGalleryImageList'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: health_retrieve
+      description: Liveness and readiness probe used by Docker and the load balancer.
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/v1/services/:
+    get:
+      operationId: services_list
+      description: Active services, filterable by category slug and popularity.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category slug, e.g. `men`.
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      - name: page
+        required: false
+        in: query
+        description: Un numéro de page de l'ensemble des résultats.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Nombre de résultats à retourner par page.
+        schema:
+          type: integer
+      - in: query
+        name: popular
+        schema:
+          type: boolean
+        description: Only the services shown in « Tarifs populaires ».
+      tags:
+      - services
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedServiceList'
+          description: ''
+  /api/v1/services/{slug}/:
+    get:
+      operationId: services_retrieve
+      description: Active services, filterable by category slug and popularity.
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      - in: path
+        name: slug
+        schema:
+          type: string
+          title: Identifiant d'URL
+        required: true
+      tags:
+      - services
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+          description: ''
+  /api/v1/site/:
+    get:
+      operationId: site_retrieve
+      description: Shop details, hours, social links, images and recruitment status.
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - site
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+          description: ''
+  /api/v1/supplements/:
+    get:
+      operationId: supplements_list
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - supplements
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplement'
+          description: ''
+  /api/v1/team/:
+    get:
+      operationId: team_list
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - team
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMember'
+          description: ''
+  /api/v1/testimonials/:
+    get:
+      operationId: testimonials_list
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fr
+        description: Content language (defaults to French).
+      tags:
+      - testimonials
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Testimonial'
+          description: ''
+components:
+  schemas:
+    AccentEnum:
+      enum:
+      - gold
+      - rose
+      type: string
+      description: |-
+        * `gold` - Or
+        * `rose` - Rose (Beauty & Spa)
+    ApplicationReceived:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    AvailableSlots:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        slots:
+          type: array
+          items:
+            type: string
+            format: time
+      required:
+      - date
+      - slots
+    BookingCreateRequest:
+      type: object
+      description: 'Hidden ``website`` field: humans never see it, naive bots fill
+        it in.'
+      properties:
+        service:
+          type: string
+          minLength: 1
+          title: Identifiant d'URL
+        date:
+          type: string
+          format: date
+        time_slot:
+          type: string
+          format: time
+        customer_name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        phone:
+          type: string
+          minLength: 1
+          maxLength: 24
+        notes:
+          type: string
+          maxLength: 500
+        channel:
+          allOf:
+          - $ref: '#/components/schemas/ChannelEnum'
+          default: website
+        website:
+          type: string
+          writeOnly: true
+          description: Anti-spam trap. Must stay empty.
+          maxLength: 200
+      required:
+      - customer_name
+      - date
+      - phone
+      - service
+      - time_slot
+    BookingCreated:
+      type: object
+      properties:
+        reference:
+          type: string
+          readOnly: true
+          title: Référence
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BookingStatusEnum'
+          readOnly: true
+          title: Statut
+        service:
+          type: string
+          title: Identifiant d'URL
+          readOnly: true
+        service_name:
+          type: string
+          readOnly: true
+          title: Prestation (au moment de la demande)
+        date:
+          type: string
+          format: date
+          readOnly: true
+        time_slot:
+          type: string
+          format: time
+        customer_name:
+          type: string
+          readOnly: true
+          title: Nom du client
+        whatsapp_url:
+          type: string
+          readOnly: true
+          description: Open this link to send the prefilled request to the shop on
+            WhatsApp.
+      required:
+      - customer_name
+      - date
+      - reference
+      - service
+      - service_name
+      - status
+      - time_slot
+      - whatsapp_url
+    BookingStatusEnum:
+      enum:
+      - new
+      - confirmed
+      - completed
+      - cancelled
+      - no_show
+      type: string
+      description: |-
+        * `new` - Nouvelle
+        * `confirmed` - Confirmée
+        * `completed` - Honorée
+        * `cancelled` - Annulée
+        * `no_show` - Absent
+    ChannelEnum:
+      enum:
+      - website
+      - quick_bar
+      type: string
+      description: |-
+        * `website` - website
+        * `quick_bar` - quick_bar
+    ContactMessageCreateRequest:
+      type: object
+      description: 'Hidden ``website`` field: humans never see it, naive bots fill
+        it in.'
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        contact:
+          type: string
+          minLength: 1
+          maxLength: 254
+        message:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        website:
+          type: string
+          writeOnly: true
+          description: Anti-spam trap. Must stay empty.
+          maxLength: 200
+      required:
+      - contact
+      - message
+      - name
+    ContactReceived:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    GalleryCategoryEnum:
+      enum:
+      - cuts
+      - hairstyles
+      - beauty
+      - salon
+      type: string
+      description: |-
+        * `cuts` - Coupes
+        * `hairstyles` - Coiffures
+        * `beauty` - Beauty
+        * `salon` - Le salon
+    GalleryImage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/GalleryCategoryEnum'
+          title: Catégorie
+        image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+        alt_text:
+          type: string
+          title: Description de la photo
+          description: 'Décrit la photo pour les malvoyants et Google. Ex. : Skin
+            fade avec motif.'
+          maxLength: 160
+        caption:
+          type: string
+          title: Légende
+          maxLength: 120
+        service:
+          type: string
+          title: Identifiant d'URL
+          readOnly: true
+          nullable: true
+        is_featured:
+          type: boolean
+          title: Sur l'accueil
+      required:
+      - alt_text
+      - category
+      - id
+      - image
+      - service
+    Health:
+      type: object
+      properties:
+        database:
+          type: string
+        cache:
+          type: string
+      required:
+      - cache
+      - database
+    JobApplicationCreateRequest:
+      type: object
+      description: 'Hidden ``website`` field: humans never see it, naive bots fill
+        it in.'
+      properties:
+        opening:
+          type: string
+          minLength: 1
+          title: Identifiant
+        full_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        contact:
+          type: string
+          minLength: 1
+          maxLength: 254
+        message:
+          type: string
+          maxLength: 1000
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+          writeOnly: true
+          description: CV, lettre de motivation, CNI, photos ou vidéos (8 fichiers,
+            15 Mo chacun).
+        website:
+          type: string
+          writeOnly: true
+          description: Anti-spam trap. Must stay empty.
+          maxLength: 200
+      required:
+      - contact
+      - files
+      - full_name
+      - opening
+    JobOpening:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          title: Identifiant
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          title: Intitulé du poste
+          maxLength: 100
+        positions_count:
+          type: integer
+          maximum: 32767
+          minimum: 1
+          title: Nombre de postes
+        requirements:
+          type: string
+          title: Profil recherché
+          maxLength: 240
+        description:
+          type: string
+          maxLength: 1200
+        deadline:
+          type: string
+          format: date
+          nullable: true
+          readOnly: true
+      required:
+      - deadline
+      - id
+      - requirements
+      - slug
+      - title
+    OpeningHours:
+      type: object
+      properties:
+        days_label:
+          type: string
+        opens:
+          type: string
+          format: time
+        closes:
+          type: string
+          format: time
+        schema_org:
+          type: string
+          description: openingHours value for LocalBusiness JSON-LD
+      required:
+      - closes
+      - days_label
+      - opens
+      - schema_org
+    PaginatedGalleryImageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GalleryImage'
+    PaginatedServiceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+    ResponsiveImageSchema:
+      type: object
+      properties:
+        src:
+          type: string
+          format: uri
+        srcset:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+      required:
+      - height
+      - src
+      - srcset
+      - width
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          title: Identifiant d'URL
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        category:
+          type: string
+          title: Identifiant d'URL
+          description: Utilisé dans l'adresse de l'onglet.
+          readOnly: true
+        name:
+          type: string
+          title: Nom
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 600
+        duration_min:
+          type: integer
+          maximum: 32767
+          minimum: 5
+          title: Durée minimale (min)
+        duration_max:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+          title: Durée maximale (min)
+          description: Vide si durée fixe.
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Prix (FCFA)
+          description: Vide uniquement si « sur devis ».
+        price_is_from:
+          type: boolean
+          title: Prix « dès »
+        price_on_quote:
+          type: boolean
+          title: Sur devis
+        is_popular:
+          type: boolean
+          title: Tarif populaire
+          description: Affiché dans « Tarifs populaires ».
+        image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+      required:
+      - category
+      - duration_min
+      - id
+      - image
+      - name
+      - slug
+    ServiceCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          title: Identifiant d'URL
+          description: Utilisé dans l'adresse de l'onglet.
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          title: Nom court (onglet)
+          maxLength: 60
+        title:
+          type: string
+          title: Titre (menu et cartes)
+          maxLength: 80
+        tagline:
+          type: string
+          title: Accroche
+          maxLength: 140
+        booking_note:
+          type: string
+          title: Note de réservation
+          description: 'Ex. : Sur rendez-vous.'
+          maxLength: 120
+        accent:
+          allOf:
+          - $ref: '#/components/schemas/AccentEnum'
+          title: Couleur d'accent
+        appointment_only:
+          type: boolean
+          title: Sur rendez-vous uniquement
+        show_on_home:
+          type: boolean
+          title: Afficher sur l'accueil
+        starting_price:
+          type: integer
+          readOnly: true
+          nullable: true
+        image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceInCategory'
+          readOnly: true
+      required:
+      - accent
+      - id
+      - image
+      - name
+      - services
+      - slug
+      - starting_price
+      - title
+    ServiceInCategory:
+      type: object
+      description: 'Nested in a category: the category is implied, so skip it (and
+        its query).'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        slug:
+          type: string
+          title: Identifiant d'URL
+          maxLength: 80
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          title: Nom
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 600
+        duration_min:
+          type: integer
+          maximum: 32767
+          minimum: 5
+          title: Durée minimale (min)
+        duration_max:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+          title: Durée maximale (min)
+          description: Vide si durée fixe.
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Prix (FCFA)
+          description: Vide uniquement si « sur devis ».
+        price_is_from:
+          type: boolean
+          title: Prix « dès »
+        price_on_quote:
+          type: boolean
+          title: Sur devis
+        is_popular:
+          type: boolean
+          title: Tarif populaire
+          description: Affiché dans « Tarifs populaires ».
+        image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+      required:
+      - duration_min
+      - id
+      - image
+      - name
+      - slug
+    SiteSettings:
+      type: object
+      properties:
+        business_name:
+          type: string
+          title: Nom du salon
+          maxLength: 80
+        business_subtitle:
+          type: string
+          title: Sous-titre
+          maxLength: 80
+        tagline:
+          type: string
+          title: Slogan
+          maxLength: 120
+        whatsapp_number:
+          type: string
+          title: Numéro WhatsApp
+          description: Format international, par exemple +237653147512.
+          maxLength: 20
+        whatsapp_display:
+          type: string
+          readOnly: true
+        whatsapp_url:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email public
+          maxLength: 254
+        address_line:
+          type: string
+          title: Adresse
+          maxLength: 160
+        city:
+          type: string
+          title: Ville
+          maxLength: 80
+        country_code:
+          type: string
+          title: Code pays
+          maxLength: 2
+        opening_hours:
+          allOf:
+          - $ref: '#/components/schemas/OpeningHours'
+          readOnly: true
+        slot_interval_minutes:
+          type: integer
+          maximum: 120
+          minimum: 10
+          title: Intervalle des créneaux (min)
+        booking_horizon_days:
+          type: integer
+          maximum: 365
+          minimum: 1
+          title: Réservation possible jusqu'à (jours)
+        accepts_mobile_money:
+          type: boolean
+          title: Mobile Money accepté
+        social:
+          allOf:
+          - $ref: '#/components/schemas/SocialLinks'
+          readOnly: true
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+        maps_url:
+          title: Lien Google Maps
+          description: Lien « Itinéraire » partagé depuis Maps.
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        recruitment_deadline:
+          type: string
+          format: date
+          nullable: true
+          title: Date limite des candidatures
+        recruitment_open:
+          type: boolean
+          readOnly: true
+        application_documents:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        story:
+          type: string
+          title: Notre histoire
+        amenities:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        signature_service:
+          allOf:
+          - $ref: '#/components/schemas/Service'
+          nullable: true
+          readOnly: true
+        hero_image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+        signature_image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+        about_image:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+      required:
+      - about_image
+      - address_line
+      - amenities
+      - application_documents
+      - email
+      - hero_image
+      - latitude
+      - longitude
+      - opening_hours
+      - recruitment_open
+      - signature_image
+      - signature_service
+      - social
+      - story
+      - tagline
+      - whatsapp_display
+      - whatsapp_number
+      - whatsapp_url
+    SocialLinks:
+      type: object
+      properties:
+        instagram:
+          oneOf:
+          - type: string
+            format: uri
+          - type: string
+            maxLength: 0
+        facebook:
+          oneOf:
+          - type: string
+            format: uri
+          - type: string
+            maxLength: 0
+        tiktok:
+          oneOf:
+          - type: string
+            format: uri
+          - type: string
+            maxLength: 0
+      required:
+      - facebook
+      - instagram
+      - tiktok
+    Supplement:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nom
+          maxLength: 80
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 1
+          title: Prix (FCFA)
+        price_is_from:
+          type: boolean
+          title: Prix « dès »
+      required:
+      - id
+      - name
+      - price
+    TeamMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Nom
+          maxLength: 80
+        role:
+          type: string
+          title: Poste
+          maxLength: 80
+        bio:
+          type: string
+          title: Présentation
+          maxLength: 600
+        photo:
+          allOf:
+          - $ref: '#/components/schemas/ResponsiveImageSchema'
+          nullable: true
+          readOnly: true
+      required:
+      - id
+      - name
+      - photo
+      - role
+    Testimonial:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        author_name:
+          type: string
+          title: Nom du client
+          maxLength: 80
+        author_location:
+          type: string
+          title: Quartier
+          maxLength: 80
+        quote:
+          type: string
+          title: Témoignage
+          maxLength: 600
+        rating:
+          type: integer
+          maximum: 5
+          minimum: 1
+          title: Note
+      required:
+      - author_name
+      - id
+      - quote

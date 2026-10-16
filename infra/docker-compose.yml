@@ -1,0 +1,62 @@
+# Local development stack. Start everything with `make dev` (or:
+#   docker compose --env-file .env -f infra/docker-compose.yml up --build)
+# The api container migrates, seeds and creates the admin account on boot.
+name: empire-t
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-empire}
+      POSTGRES_USER: ${POSTGRES_USER:-empire}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+      target: dev
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-empire}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-empire}
+      REDIS_URL: redis://redis:6379/0
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py seed &&
+             python manage.py ensure_superuser &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ../apps/api:/app
+      - ../packages/api-client:/api-client
+      - media:/app/media
+      - private_media:/app/private_media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  media:
+  private_media:

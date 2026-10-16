@@ -1,0 +1,67 @@
+[project]
+name = "empire-t-api"
+version = "1.0.0"
+description = "Empire T Barbershop & Beauty: REST API and admin"
+requires-python = ">=3.12"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = "migrations"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "S", "DJ", "SIM", "RUF", "PL", "C4", "PTH", "T20"]
+ignore = [
+  "PLR0913",  # serializers/admin hooks legitimately take many arguments
+  "PLR2004",  # magic values are fine in tests and validators with named context
+  "RUF012",   # Django Meta/admin class attributes are mutable by convention
+  "PLC0415",  # Django requires lazy imports in AppConfig.ready() and manage.py
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "PLR0915"]
+"config/settings/*.py" = ["F405", "F403"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+warn_unreachable = true
+exclude = ["migrations/", "\\.venv/"]
+disallow_subclassing_any = false
+disallow_untyped_decorators = false
+# modeltranslation replaces managers at runtime, which the django-stubs plugin cannot follow.
+# Every model therefore declares its manager explicitly (and related managers under
+# TYPE_CHECKING), so this check adds nothing but false positives.
+disable_error_code = ["django-manager-missing"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = ["environ.*", "modeltranslation.*", "storages.*", "django_filters.*", "drf_spectacular.*", "corsheaders.*", "django_redis.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+python_classes = []  # function-style tests; avoids collecting models named Test*
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=apps --cov-report=term-missing:skip-covered --cov-fail-under=90"
+filterwarnings = ["error::RuntimeWarning"]
+
+[tool.coverage.run]
+omit = ["*/migrations/*", "*/tests/*"]

@@ -1,0 +1,15 @@
+Nouvelle candidature reçue sur le site Empire T.
+
+Poste : {{ application.opening.title_fr }}
+Nom : {{ application.full_name }}
+Contact ({{ application.get_contact_kind_display }}) : {{ application.contact }}
+Reçue le : {{ application.created_at|date:"d/m/Y à H:i" }}
+{% if application.message %}
+Message :
+{{ application.message }}
+{% endif %}
+Pièces jointes ({{ files|length }}) :
+{% for f in files %}  - {{ f.original_name }} ({{ f.size|filesizeformat }})
+{% endfor %}
+Consulter et télécharger le dossier :
+{{ admin_url }}

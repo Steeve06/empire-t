@@ -1,0 +1,11 @@
+Nouveau message reçu via le formulaire de contact du site Empire T.
+
+Nom : {{ message.name }}
+Contact ({{ message.get_contact_kind_display }}) : {{ message.contact }}
+Reçu le : {{ message.created_at|date:"d/m/Y à H:i" }}
+
+Message :
+{{ message.message }}
+
+Voir dans l'administration :
+{{ admin_url }}
