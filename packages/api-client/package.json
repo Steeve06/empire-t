@@ -1,0 +1,26 @@
+{
+  "name": "@empire-t/api-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Typed client for the Empire T REST API, generated from apps/api's OpenAPI schema",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "openapi-typescript openapi.yaml --output src/schema.d.ts && prettier --write src/schema.d.ts",
+    "check-generated": "openapi-typescript openapi.yaml --output /tmp/empire-schema.d.ts && prettier --write /tmp/empire-schema.d.ts >/dev/null && diff -q /tmp/empire-schema.d.ts src/schema.d.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}

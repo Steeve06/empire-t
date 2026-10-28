@@ -1,10 +1,11 @@
 {
   "name": "empire-t",
   "private": true,
+  "type": "module",
   "description": "Empire T Barbershop & Beauty: website and backend monorepo",
   "packageManager": "pnpm@10.28.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "scripts": {
     "dev": "pnpm --filter @empire-t/web dev",
@@ -13,5 +14,17 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "pnpm -r format"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-jsx-a11y-x": "0.2.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
   }
 }

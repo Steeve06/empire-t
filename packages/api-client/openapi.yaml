@@ -839,7 +839,7 @@ components:
       properties:
         src:
           type: string
-          format: uri
+          description: Largest variant; root-relative or absolute.
         srcset:
           type: string
         width:

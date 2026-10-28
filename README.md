@@ -5,7 +5,7 @@ Website and back office for Empire T, Nkolmesseng, Yaoundé. *Plus qu'une coupe,
 | Path | What |
 |---|---|
 | `apps/api` | Django 5.2 + DRF API, admin, PostgreSQL, Redis cache |
-| `apps/web` | React + Vite frontend (phase 3) |
+| `apps/web` | React 19 + Vite site, pre-rendered per page, French and English |
 | `packages/api-client` | OpenAPI schema (`openapi.yaml`) and generated TypeScript client |
 | `infra` | Dockerfiles, docker-compose, nginx |
 | `docs` | Decisions, assumptions, guides |
@@ -15,11 +15,12 @@ Website and back office for Empire T, Nkolmesseng, Yaoundé. *Plus qu'une coupe,
 Requirements: Docker with Compose v2.
 
 ```bash
-make dev        # creates .env from .env.example, then starts db, redis and api
+make dev        # creates .env from .env.example, then starts db, redis, api and web
 ```
 
 On first boot the api container migrates, loads the seed (services, prices, openings, site settings) and creates the admin account from `DJANGO_SUPERUSER_*` in `.env`.
 
+- Website: http://localhost:5173/fr/ (English: /en/)
 - API: http://localhost:8000/api/v1/
 - API reference (Swagger): http://localhost:8000/api/v1/docs/
 - Admin: http://localhost:8000/admin/
@@ -27,7 +28,9 @@ On first boot the api container migrates, loads the seed (services, prices, open
 ## Everyday commands
 
 ```bash
-make test       # backend tests with coverage (and frontend tests once phase 3 lands)
+make test       # backend tests with coverage, then frontend tests
+make install    # once: frontend dependencies on the host (Node 22, pnpm via corepack)
+make prerender  # production build of the site, rendered from the running API
 make lint       # ruff, black --check, mypy --strict
 make migrate    # apply migrations
 make seed       # load missing seed rows (never overwrites admin edits)

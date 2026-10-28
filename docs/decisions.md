@@ -53,3 +53,36 @@ Short records of choices where a reasonable alternative existed. Newest at the b
 ## ADR-012 · Plain pytest fixtures, no factory library
 **Choice:** tests build data from the real seed command and small fixtures.
 **Why:** the domain is small; testing against the actual seed also verifies the content the owner will see. One dependency fewer.
+
+## ADR-013 · Own pre-renderer instead of a Vite SSG plugin
+**Choice:** `apps/web/src/prerender/` renders every public URL with React Router's static handler and `renderToString`, after awaiting the queries each route declares (`handle.prefetch`). The output is plain HTML per page, with its `<head>`, LocalBusiness JSON-LD and the dehydrated TanStack Query cache. It runs as a deploy-time job against the live API, not inside `vite build`.
+**Why:** SSG plugins (vite-react-ssg and similar) lag behind React Router and React releases and render at build time, when the production API is usually unreachable. About 150 lines of our own code give full control: the job fails loudly if any API call fails, so an error page is never frozen into static HTML.
+**Freshness:** pre-rendered data is marked stale, so the browser silently refetches it once after hydration (prices are never more than a page view out of date for visitors). Crawlers see the snapshot, which `make prerender` (or the nightly job in the deployment guide) refreshes.
+
+## ADR-014 · Same-origin API, storage URLs not derived from the Host header
+**Choice:** the browser calls `/api/v1/` on its own origin: nginx routes it in production and the Vite dev server proxies it in development. Image URLs in API responses are storage URLs as-is (root-relative locally, absolute on S3).
+**Why:** no CORS preflight on slow networks, no cookies or origins to configure, and identical cached responses for every client, including the pre-renderer, which calls the API from inside Docker. The previous `build_absolute_uri` produced `http://api:8000/media/...` links in pre-rendered pages.
+
+## ADR-015 · Localised URLs
+**Choice:** `/fr/a-propos`, `/fr/reserver`, `/en/about`, `/en/book`... Each page has one id and one segment per language (`lib/paths.ts`); the language toggle maps between them and keeps the services tab and query string.
+**Why:** French URLs read naturally to the main audience and rank for French searches. hreflang links tie each pair together for Google.
+
+## ADR-016 · A darker gold for text on light backgrounds
+**Choice:** the brand gold `#B8923A` stays for buttons, borders and text on dark sections. Gold text on ivory or white (eyebrows, prices, links) uses `--c-gold-ink` `#86661F`.
+**Why:** `#B8923A` on `#FAF7F2` is 2.7:1, below the 4.5:1 WCAG AA minimum the brief requires. `#86661F` is 5.0:1 on ivory and 5.3:1 on white, and still reads as the same gold. On dark backgrounds the brand gold measures 6.5:1 and is kept. The same reasoning gave the WhatsApp button `#1E7E34` (5.3:1 with white) instead of the prototype's `#25A244` (3.3:1).
+
+## ADR-017 · No inline executable scripts
+**Choice:** the hydration state is embedded as `<script type="application/json">` and parsed by the main bundle; JSON-LD is `application/ld+json`. React Router's own hydration script is disabled (`hydrate={false}`); lazy route modules for the first URL are loaded before hydrating instead.
+**Why:** the production CSP can then be `script-src 'self'`, with no hashes or nonces to keep in sync with every build.
+
+## ADR-018 · Google Maps behind a click-to-load facade
+**Choice:** the map area shows the address with "Afficher la carte"; the iframe loads only when asked. An "Ouvrir dans Google Maps" link is always present.
+**Why:** the embed pulls over 1 MB of script and cookies on page load, which alone would push the home page below Lighthouse 90 on a mid-range phone, and costs visitors mobile data for something most never open.
+
+## ADR-019 · Toolchain versions held back on purpose
+**Choice:** TypeScript 5.9, ESLint 10 with `eslint-plugin-jsx-a11y-x`, React Router 7.
+**Why:** typescript-eslint and openapi-typescript do not yet support TypeScript 7. The original `eslint-plugin-jsx-a11y` has had no release since 2024 and stops at ESLint 9, which is end-of-life; the `-x` fork runs the same accessibility rules on ESLint 10. React Router 7 is the maintained line whose data and static-rendering APIs this project uses; moving to 8 is a separate, deliberate upgrade.
+
+## ADR-020 · openapi-fetch as the API client
+**Choice:** `packages/api-client` wraps `openapi-fetch` (about 6 KB) with the types `openapi-typescript` generates from `openapi.yaml`, plus an `ApiError` carrying DRF field errors. CI regenerates the types and fails on any difference.
+**Why:** request paths, query parameters and response shapes are checked by the compiler against the backend contract, with no code generator runtime and no hand-written DTOs to drift.

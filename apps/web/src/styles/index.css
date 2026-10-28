@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Colours live in CSS variables so dark mode is a variable swap,
+ * never a second set of utility classes. Text-on-light gold uses --c-gold-ink:
+ * the brand gold #B8923A only reaches 2.7:1 on ivory, below WCAG AA (see ADR-016).
+ */
+:root {
+  color-scheme: light dark;
+  --c-page: #faf7f2;
+  --c-card: #ffffff;
+  --c-ink: #16130f;
+  --c-muted: #6d665b;
+  --c-line: #e4ddd0;
+  --c-gold: #b8923a;
+  --c-gold-ink: #86661f;
+  --c-rose: #c98a9b;
+  --c-rose-ink: #8f4e60;
+  --c-danger: #a3352a;
+  --c-placeholder-from: #d9cfbd;
+  --c-placeholder-to: #efe8da;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-page: #12110f;
+    --c-card: #1b1916;
+    --c-ink: #f3efe7;
+    --c-muted: #a59e90;
+    --c-line: #2f2b25;
+    --c-gold: #d3ab55;
+    --c-gold-ink: #d3ab55;
+    --c-rose-ink: #e1a9b8;
+    --c-danger: #f08a7e;
+    --c-placeholder-from: #2a251e;
+    --c-placeholder-to: #1f1c18;
+  }
+}
+
+@theme inline {
+  --color-page: var(--c-page);
+  --color-card: var(--c-card);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-gold: var(--c-gold);
+  --color-gold-ink: var(--c-gold-ink);
+  --color-rose: var(--c-rose);
+  --color-rose-ink: var(--c-rose-ink);
+  --color-danger: var(--c-danger);
+
+  /* Always-dark feature sections (top bar, hero, signature, CTA, footer) */
+  --color-night: #0f0e0c;
+  --color-night-2: #1b1813;
+  --color-night-line: #3a3226;
+  --color-on-night: #f3efe7;
+  --color-on-night-muted: #bdb6a8;
+  --color-brand-gold: #b8923a;
+  --color-whatsapp: #1e7e34;
+
+  --font-display: "Cormorant Garamond", "Cormorant Fallback", Georgia, serif;
+  --font-sans:
+    "Manrope Variable", "Manrope Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Metric-matched fallbacks keep layout shift near zero while web fonts swap in. */
+@font-face {
+  font-family: "Cormorant Fallback";
+  src: local("Georgia"), local("Times New Roman");
+  size-adjust: 88%;
+  ascent-override: 103%;
+  descent-override: 32%;
+}
+@font-face {
+  font-family: "Manrope Fallback";
+  src: local("Arial"), local("Roboto");
+  size-adjust: 104%;
+  ascent-override: 102%;
+  descent-override: 29%;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-page font-sans text-[16px] leading-[1.65] text-ink antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display leading-[1.1] font-semibold text-balance;
+  }
+  /* Cormorant defaults to old-style figures ("3 5oo F"); prices need lining figures. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-variant-numeric: lining-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--c-gold);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--c-gold) 35%, transparent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-[1180px] px-4 sm:px-5;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold tracking-[0.3em] text-gold-ink uppercase;
+  }
+  .on-night .eyebrow,
+  .eyebrow.on-night {
+    @apply text-brand-gold;
+  }
+  /* Placeholder artwork for photos the owner has not uploaded yet */
+  .photo-placeholder {
+    background: linear-gradient(135deg, #2a241c, #0f0e0c 60%, #3a2f1e);
+    @apply relative flex items-end overflow-hidden p-4 text-xs tracking-[0.12em] text-[#a99f8c] uppercase;
+  }
+  .photo-placeholder.is-rose {
+    background: linear-gradient(135deg, #3a2430, #14100f 65%, #5a3345);
+  }
+  .photo-placeholder.is-light {
+    background: linear-gradient(135deg, var(--c-placeholder-from), var(--c-placeholder-to));
+    @apply text-muted;
+  }
+  /* Scroll reveal: only elements below the fold at hydration time are hidden, so
+     pre-rendered content and the LCP element are never delayed. */
+  .reveal-pending {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  .reveal-shown {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s var(--ease-out-soft),
+      transform 0.7s var(--ease-out-soft);
+  }
+}

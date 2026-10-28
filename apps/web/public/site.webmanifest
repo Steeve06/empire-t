@@ -1,0 +1,12 @@
+{
+  "name": "Empire T Barbershop & Beauty",
+  "short_name": "Empire T",
+  "start_url": "/fr/",
+  "display": "browser",
+  "background_color": "#faf7f2",
+  "theme_color": "#0f0e0c",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

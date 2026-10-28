@@ -1,0 +1,17 @@
+# Keep build contexts small and never bake secrets or local state into images.
+.git
+.env
+.env.*
+!.env.example
+**/node_modules
+**/.venv
+**/__pycache__
+**/.mypy_cache
+**/.ruff_cache
+**/.pytest_cache
+**/.coverage
+**/dist
+**/dist-ssr
+apps/api/media
+apps/api/private_media
+apps/api/staticfiles

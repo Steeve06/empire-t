@@ -133,7 +133,7 @@ def test_team_photo_is_exposed_as_responsive_image(api, seeded, make_image) -> N
         name="Paul", role_fr="Barber", photo=make_image(width=1200, height=1500)
     )
     photo = api.get("/api/v1/team/").json()[0]["photo"]
-    assert photo["src"].startswith("http://testserver/media/team/")
+    assert photo["src"].startswith("/media/team/")
     assert photo["srcset"].count("w, ") == 2  # 480w, 960w, 1200w
     assert photo["srcset"].endswith("1200w")
     assert (photo["width"], photo["height"]) == (1200, 1500)

@@ -1,4 +1,4 @@
-# Local development stack. Start everything with `make dev` (or:
+# Local development stack: db, redis, api (Django) and web (Vite). Start with `make dev` (or:
 #   docker compose --env-file .env -f infra/docker-compose.yml up --build)
 # The api container migrates, seeds and creates the admin account on boot.
 name: empire-t
@@ -55,6 +55,25 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+      target: dev
+    env_file: ../.env
+    environment:
+      # Vite proxies /api, /media and /admin to the api container: one origin, no CORS.
+      VITE_DEV_API_PROXY: http://api:8000
+    volumes:
+      - ../apps/web/src:/repo/apps/web/src
+      - ../apps/web/public:/repo/apps/web/public
+      - ../apps/web/index.html:/repo/apps/web/index.html
+      - ../packages/api-client/src:/repo/packages/api-client/src
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

@@ -12,7 +12,7 @@ from .images import ImageMeta
 
 
 class ResponsiveImageSchema(serializers.Serializer[Any]):
-    src = serializers.URLField()
+    src = serializers.CharField(help_text="Largest variant; root-relative or absolute.")
     srcset = serializers.CharField()
     width = serializers.IntegerField()
     height = serializers.IntegerField()
@@ -32,18 +32,13 @@ class ResponsiveImageField(serializers.Field):  # type: ignore[type-arg]
         if not meta:
             return None
         storage = getattr(instance, self.image_field).storage
-        request = self.context.get("request")
-
-        def absolute(name: str) -> str:
-            url = str(storage.url(name))
-            if request is not None and url.startswith("/"):
-                return str(request.build_absolute_uri(url))
-            return url
-
+        # Storage URLs as-is: root-relative locally (same origin behind nginx and the Vite
+        # proxy), absolute on S3. Never derived from the Host header, so cached responses
+        # are identical for every client, including the build-time pre-renderer.
         variants = meta["variants"]
         return {
-            "src": absolute(variants[-1]["name"]),
-            "srcset": ", ".join(f"{absolute(v['name'])} {v['width']}w" for v in variants),
+            "src": str(storage.url(variants[-1]["name"])),
+            "srcset": ", ".join(f"{storage.url(v['name'])} {v['width']}w" for v in variants),
             "width": meta["width"],
             "height": meta["height"],
         }

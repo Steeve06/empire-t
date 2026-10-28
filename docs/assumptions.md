@@ -18,3 +18,8 @@ Made where the brief was silent. Each one is editable without a developer unless
 | A12 | Shop notification emails are written in French whatever the visitor's language. | Code: `apps/core/notifications.py` |
 | A13 | Production runs on a single small VPS (Docker Compose, Postgres and Redis on the same host). S3-compatible storage is optional and switched on with `USE_S3=true`. | `.env` |
 | A14 | The brief says Python 3.12; images use 3.12. The code also runs on 3.13 (used in local verification). | `infra/api.Dockerfile` |
+| A15 | Hero paragraph, the four values (Qualité, Propreté, Rapidité, Style) and other interface copy are fixed text in both languages; the tagline, prices, categories, story and everything the owner manages come from the API. | Code: `apps/web/src/i18n/fr.ts`, `en.ts` |
+| A16 | Visiting `/` opens the French site unless the browser asks for English and not French. | Code: `infra/nginx`, `apps/web/src/app/LanguageRedirect.tsx` |
+| A17 | The logo is a typographic wordmark (EMPIRE T / BARBERSHOP & BEAUTY) until the owner's crown-and-shield files arrive; labelled placeholders stand in for every photo not yet uploaded. | `apps/web/src/components/layout/Logo.tsx`, Admin › photos |
+| A18 | Social links (Instagram, Facebook, TikTok) appear in the footer only once a URL is filled in; none were provided. | Admin › Paramètres du site › Réseaux sociaux |
+| A19 | Prices display as « 3 500 F » (French) and "3,500 F" (English), CFA franc with a non-breaking space; the services page states that all prices are in FCFA. | Code: `apps/web/src/lib/format.ts` |
