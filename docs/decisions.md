@@ -86,3 +86,16 @@ Short records of choices where a reasonable alternative existed. Newest at the b
 ## ADR-020 · openapi-fetch as the API client
 **Choice:** `packages/api-client` wraps `openapi-fetch` (about 6 KB) with the types `openapi-typescript` generates from `openapi.yaml`, plus an `ApiError` carrying DRF field errors. CI regenerates the types and fails on any difference.
 **Why:** request paths, query parameters and response shapes are checked by the compiler against the backend contract, with no code generator runtime and no hand-written DTOs to drift.
+
+## ADR-021 · Body font `optional`, heading font `swap`, metric-matched fallbacks
+**Choice:** our own `@font-face` rules (`apps/web/src/styles/fonts.css`) for the Latin and Latin Extended subsets only. Manrope (body) uses `font-display: optional`, Cormorant Garamond (headings) uses `swap`. Fallback faces resize Roboto and Noto Serif (Android), Arial and Georgia (desktop, iPhone) to each web font's metrics, using values from `@capsizecss/metrics`.
+**Why:** the two Latin files are preloaded, so on a normal connection both fonts render on the first paint. On a slow one, a swapped body font reflows paragraphs, moves the footer and makes Chrome record a late LCP. With `optional`, that visit keeps the near-identical Roboto and the next page uses the cached Manrope. Headings carry the brand, so they still swap, and their fallback is sized to match.
+**Result:** mobile Lighthouse 98 to 100 performance and CLS 0 on every page. Fontsource's CSS was dropped because it hard-codes `swap` and ships around 30 subset files.
+
+## ADR-022 · Pre-rendered pages written as `page.html`
+**Choice:** `/fr/` is written to `fr/index.html` and `/fr/a-propos` to `fr/a-propos.html`. nginx serves them with `try_files $uri $uri.html $uri/index.html`.
+**Why:** URLs stay without a trailing slash, every file maps to one URL, and both nginx and `vite preview` serve them directly. (With `a-propos/index.html`, the preview server only matched `/fr/a-propos/`, which silently served the client-rendered shell during testing.)
+
+## ADR-023 · English API messages for visitors only
+**Choice:** `apps/api/locale/en/LC_MESSAGES/django.po` translates the 22 messages a visitor can receive (validation errors, confirmations, 404 and 500). Admin labels and model names stay French. The compiled `.mo` is committed, so production images need no gettext.
+**Why:** an English page that shows French server errors breaks the bilingual promise. The back office is used by a French-speaking owner, so translating its roughly 200 labels would be cost without benefit. `make messages` recompiles the catalogue after edits.

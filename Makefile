@@ -6,7 +6,7 @@ API_RUN := $(COMPOSE) run --rm --no-deps api
 .DEFAULT_GOAL := help
 .PHONY: help env dev up down logs build migrate makemigrations seed superuser bootstrap \
 	test test-api test-web lint lint-api lint-web format typecheck schema api-client shell \
-	install web-build prerender
+	install web-build prerender messages
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-16s\033[0m %s\n", $$1, $$2}'
@@ -42,6 +42,9 @@ superuser: ## Create the admin account from DJANGO_SUPERUSER_* variables (idempo
 	$(API) python manage.py ensure_superuser
 
 bootstrap: migrate seed superuser ## migrate + seed + superuser in one go
+
+messages: ## Compile apps/api/locale/en/LC_MESSAGES/django.po after editing English API messages
+	$(API) python manage.py compilemessages --ignore=.venv
 
 shell: ## Django shell inside the api container
 	$(API) python manage.py shell

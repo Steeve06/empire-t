@@ -43,6 +43,7 @@ export function QuickBookingBar({
         date: value("date"),
         time: value("time"),
         phone: value("phone"),
+        via: "quick",
       }),
     );
   }

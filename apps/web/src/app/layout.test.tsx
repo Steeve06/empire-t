@@ -22,7 +22,9 @@ describe("layout", () => {
 
   it("switches language to the same page", async () => {
     renderApp("/fr/");
-    const toggle = await screen.findByRole("link", { name: /Read this page in English/ });
+    const toggle = await screen.findByRole("link", {
+      name: /^FR\s*\|\s*EN\b.*Read this page in English/,
+    });
     expect(toggle).toHaveAttribute("href", "/en/");
     expect(toggle).toHaveAttribute("hreflang", "en");
   });
@@ -105,6 +107,7 @@ describe("home page", () => {
       service: "skin-fade",
       time: "15:30",
       phone: "653 147 512",
+      via: "quick",
     });
   });
 

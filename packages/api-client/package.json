@@ -12,8 +12,8 @@
     "check-generated": "openapi-typescript openapi.yaml --output /tmp/empire-schema.d.ts && prettier --write /tmp/empire-schema.d.ts >/dev/null && diff -q /tmp/empire-schema.d.ts src/schema.d.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint . && prettier --check .",
-    "format": "prettier --write ."
+    "lint": "eslint . && prettier --check src package.json tsconfig.json",
+    "format": "prettier --write src package.json tsconfig.json"
   },
   "dependencies": {
     "openapi-fetch": "0.17.0"

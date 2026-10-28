@@ -154,7 +154,7 @@ const fr = {
     tabs: "Catégories de services",
     book: "Réserver",
     bookService: "Réserver : {{name}}",
-    supplements: "Suppléments",
+    supplements: "Suppléments :",
     empty: "Aucune prestation n'est proposée dans cette catégorie pour le moment.",
     notFound: "Cette catégorie n'existe pas.",
   },

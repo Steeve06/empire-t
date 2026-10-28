@@ -1,0 +1,102 @@
+# English translations of the API messages a visitor can see (validation, errors, confirmations).
+# Admin and model labels stay French: the back office is used by the French-speaking owner.
+# Regenerate the .mo after editing: `make messages` (or `python manage.py compilemessages`).
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: apps/core/validators.py
+msgid "Numéro invalide. Exemple : 6 53 14 75 12 ou +237 6 53 14 75 12."
+msgstr "Invalid number. Example: 6 53 14 75 12 or +237 6 53 14 75 12."
+
+#: apps/core/validators.py
+msgid "Adresse email invalide."
+msgstr "Invalid email address."
+
+#: apps/core/validators.py
+msgid "Indiquez un email ou un numéro WhatsApp valide."
+msgstr "Enter a valid email address or WhatsApp number."
+
+#: apps/core/fields.py
+msgid "Envoi refusé."
+msgstr "Submission rejected."
+
+#: apps/core/exceptions.py
+msgid "Une erreur interne est survenue. Réessayez plus tard."
+msgstr "An internal error occurred. Please try again later."
+
+#: apps/core/exceptions.py
+msgid "Ressource introuvable."
+msgstr "Resource not found."
+
+#: apps/core/views.py
+msgid "Paramètres du site non configurés."
+msgstr "Site settings are not configured."
+
+#: apps/careers/uploads.py
+#, python-format
+msgid "« %(name)s » : format non accepté. Formats acceptés : PDF, Word, photos, vidéos."
+msgstr "“%(name)s”: unsupported format. Accepted formats: PDF, Word, photos, videos."
+
+#: apps/careers/uploads.py
+#, python-format
+msgid "« %(name)s » est vide."
+msgstr "“%(name)s” is empty."
+
+#: apps/careers/uploads.py
+#, python-format
+msgid "« %(name)s » dépasse 15 Mo."
+msgstr "“%(name)s” is larger than 15 MB."
+
+#: apps/careers/uploads.py
+#, python-format
+msgid "« %(name)s » ne correspond pas à son extension ou est endommagé."
+msgstr "“%(name)s” does not match its extension or is damaged."
+
+#: apps/careers/uploads.py
+msgid "Ajoutez au moins votre CV."
+msgstr "Please add at least your CV."
+
+#: apps/careers/uploads.py
+#, python-format
+msgid "%(max)d fichiers maximum."
+msgstr "%(max)d files maximum."
+
+#: apps/careers/uploads.py
+msgid "L'ensemble des fichiers dépasse 40 Mo."
+msgstr "The files are larger than 40 MB in total."
+
+#: apps/careers/serializers.py
+msgid "Ce poste n'est plus ouvert."
+msgstr "This position is no longer open."
+
+#: apps/careers/serializers.py
+msgid "Les candidatures pour ce poste sont closes."
+msgstr "Applications for this position are closed."
+
+#: apps/careers/views.py
+msgid "Candidature envoyée. Nous vous contacterons très bientôt."
+msgstr "Application sent. We will be in touch very soon."
+
+#: apps/bookings/serializers.py
+msgid "Cette prestation n'est pas disponible."
+msgstr "This service is not available."
+
+#: apps/bookings/serializers.py
+msgid "Choisissez une date à venir."
+msgstr "Choose a future date."
+
+#: apps/bookings/serializers.py
+#, python-format
+msgid "Les réservations sont ouvertes jusqu'au %(date)s."
+msgstr "Bookings are open until %(date)s."
+
+#: apps/bookings/serializers.py
+msgid "Ce créneau n'est pas disponible. Choisissez une autre heure."
+msgstr "This time is not available. Please choose another time."
+
+#: apps/contact/views.py
+msgid "Merci ! Votre message a bien été envoyé. Nous vous répondons vite."
+msgstr "Thank you! Your message has been sent. We will reply shortly."

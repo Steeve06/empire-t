@@ -57,6 +57,33 @@ function pageRoutes(lang: Lang): RouteObject[] {
         queryClient.query(queries.testimonials(api, lang)),
       ],
     ),
+    page(
+      lang,
+      "about",
+      () => import("../pages/AboutPage"),
+      ({ queryClient, api }) => [queryClient.query(queries.team(api, lang))],
+    ),
+    page(
+      lang,
+      "services",
+      () => import("../pages/ServicesPage"),
+      ({ queryClient, api }) => [queryClient.query(queries.supplements(api, lang))],
+      ":category?",
+    ),
+    page(
+      lang,
+      "gallery",
+      () => import("../pages/GalleryPage"),
+      ({ queryClient, api }) => [queryClient.infiniteQuery(queries.galleryPages(api, lang))],
+    ),
+    page(lang, "book", () => import("../pages/BookingPage"), undefined),
+    page(
+      lang,
+      "careers",
+      () => import("../pages/CareersPage"),
+      ({ queryClient, api }) => [queryClient.query(queries.openings(api, lang))],
+    ),
+    page(lang, "contact", () => import("../pages/ContactPage"), undefined),
     { path: "*", Component: NotFoundPage },
   ];
 }

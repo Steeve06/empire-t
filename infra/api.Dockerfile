@@ -19,6 +19,8 @@ RUN pip wheel --wheel-dir /wheels -r /req/dev.txt
 
 # ---- Development -----------------------------------------------------------
 FROM base AS dev
+# gettext provides msgfmt for `make messages` (compiling the English API messages)
+RUN apt-get update && apt-get install -y --no-install-recommends gettext && rm -rf /var/lib/apt/lists/*
 COPY --from=wheels /wheels /wheels
 COPY apps/api/requirements/ /req/
 RUN pip install --no-index --find-links /wheels -r /req/dev.txt && rm -rf /wheels

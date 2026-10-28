@@ -10,7 +10,7 @@ import { createI18n, isLang } from "../i18n";
 import { createQueryClient } from "../lib/api";
 import * as fixtures from "./fixtures";
 
-type Responder = (request: Request) => unknown;
+type Responder = (request: Request) => unknown; // may return a promise
 
 /** Responses keyed by API path (without query string). A function receives the request. */
 export type ApiRoutes = Record<string, unknown>;
@@ -35,23 +35,20 @@ export class HttpResponse {
 /** A fetch that serves fixtures, so tests exercise the real typed client end to end. */
 export function fakeFetch(overrides: ApiRoutes = {}) {
   const routes = { ...defaults, ...overrides };
-  return vi.fn<typeof globalThis.fetch>((input) => {
+  return vi.fn<typeof globalThis.fetch>(async (input) => {
     const request = input instanceof Request ? input : new Request(String(input));
     const { pathname } = new URL(request.url);
     if (!(pathname in routes)) {
-      return Promise.resolve(
-        new Response(JSON.stringify({ detail: "Not found" }), { status: 404 }),
-      );
+      return new Response(JSON.stringify({ detail: "Not found" }), { status: 404 });
     }
     const entry = routes[pathname];
-    const value = typeof entry === "function" ? (entry as Responder)(request) : entry;
+    const value: unknown =
+      typeof entry === "function" ? await (entry as Responder)(request) : entry;
     const { status, body } = value instanceof HttpResponse ? value : new HttpResponse(200, value);
-    return Promise.resolve(
-      new Response(JSON.stringify(body), {
-        status,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
   });
 }
 

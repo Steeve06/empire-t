@@ -23,3 +23,8 @@ Made where the brief was silent. Each one is editable without a developer unless
 | A17 | The logo is a typographic wordmark (EMPIRE T / BARBERSHOP & BEAUTY) until the owner's crown-and-shield files arrive; labelled placeholders stand in for every photo not yet uploaded. | `apps/web/src/components/layout/Logo.tsx`, Admin › photos |
 | A18 | Social links (Instagram, Facebook, TikTok) appear in the footer only once a URL is filled in; none were provided. | Admin › Paramètres du site › Réseaux sociaux |
 | A19 | Prices display as « 3 500 F » (French) and "3,500 F" (English), CFA franc with a non-breaking space; the services page states that all prices are in FCFA. | Code: `apps/web/src/lib/format.ts` |
+| A20 | After a booking request is saved, phones (touch screens) open WhatsApp automatically after a short pause; computers stay on the confirmation, which shows a QR code to continue on a phone. The "Ouvrir WhatsApp" button is always there. | Code: `apps/web/src/components/booking/BookingConfirmation.tsx` |
+| A21 | Gallery filters are kept in the address (`?category=cuts`) so a filtered view can be shared; only the unfiltered gallery is pre-rendered. | Code: `apps/web/src/pages/GalleryPage.tsx` |
+| A22 | « Réserver ce style » preselects the service linked to the photo in the admin; without a link it opens the booking page with no service chosen. | Admin › Galerie › Prestation liée |
+| A23 | `/fr/services` without a tab shows the first category (Hommes). Unknown tabs show a message and are excluded from search engines. | Admin › Catégories › ordre |
+

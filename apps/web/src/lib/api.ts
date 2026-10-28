@@ -1,4 +1,4 @@
-import { queryOptions, QueryClient } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions, QueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
 import {
@@ -29,10 +29,14 @@ export const queries = {
     queryOptions({ queryKey: ["categories", lang], queryFn: () => api.categories(lang) }),
   supplements: (api: ApiClient, lang: Lang) =>
     queryOptions({ queryKey: ["supplements", lang], queryFn: () => api.supplements(lang) }),
-  gallery: (api: ApiClient, lang: Lang, category?: GalleryCategory) =>
-    queryOptions({
+  /** Gallery pages of 24 photos, loaded one page at a time ("Voir plus de photos"). */
+  galleryPages: (api: ApiClient, lang: Lang, category?: GalleryCategory) =>
+    infiniteQueryOptions({
       queryKey: ["gallery", lang, category ?? "all"],
-      queryFn: () => api.gallery(lang, category ? { category } : {}),
+      queryFn: ({ pageParam }) =>
+        api.gallery(lang, category ? { category, page: pageParam } : { page: pageParam }),
+      initialPageParam: 1,
+      getNextPageParam: (last, _pages, page) => (last.next ? page + 1 : undefined),
     }),
   featuredGallery: (api: ApiClient, lang: Lang) =>
     queryOptions({
@@ -45,6 +49,13 @@ export const queries = {
     queryOptions({ queryKey: ["team", lang], queryFn: () => api.team(lang) }),
   openings: (api: ApiClient, lang: Lang) =>
     queryOptions({ queryKey: ["openings", lang], queryFn: () => api.openings(lang) }),
+  /** Start times still open on a day; short-lived because they depend on the clock. */
+  slots: (api: ApiClient, date: string, service: string | undefined) =>
+    queryOptions({
+      queryKey: ["slots", date, service ?? ""],
+      queryFn: ({ signal }) => api.slots(date, service, signal),
+      staleTime: 60_000,
+    }),
 };
 
 const MAX_RETRIES = 2;

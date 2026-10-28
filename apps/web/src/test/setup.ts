@@ -18,3 +18,12 @@ window.matchMedia = (query: string) =>
     removeEventListener: () => undefined,
     dispatchEvent: () => false,
   }) as unknown as MediaQueryList; // the deprecated addListener/removeListener are not needed
+
+// jsdom has no modal dialogs; the lightbox only needs open/close semantics.
+HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+  this.open = true;
+};
+HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+  this.open = false;
+  this.dispatchEvent(new Event("close"));
+};

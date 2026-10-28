@@ -35,12 +35,14 @@ export interface BookingPrefill {
   date?: string | undefined;
   time?: string | undefined;
   phone?: string | undefined;
+  /** "quick" when the request starts from the home page's quick booking bar. */
+  via?: "quick" | undefined;
 }
 
 /** Booking page with the quick-bar or "Réserver" values carried over in the query string. */
 export function bookingPath(lang: Lang, prefill: BookingPrefill = {}): string {
   const params = new URLSearchParams();
-  for (const key of ["service", "date", "time", "phone"] as const) {
+  for (const key of ["service", "date", "time", "phone", "via"] as const) {
     const value = prefill[key];
     if (value) params.set(key, value);
   }

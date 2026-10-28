@@ -18,7 +18,7 @@ import { createApiClient, type Lang } from "@empire-t/api-client";
 import { buildRoutes } from "../app/routes";
 import { STATE_ELEMENT_ID } from "../app/hydration";
 import { LANGS } from "../i18n";
-import { pathFor, servicesPath, type PageId } from "../lib/paths";
+import { PAGE_IDS, pathFor, servicesPath, type PageId } from "../lib/paths";
 import { renderHeadHtml, safeJson, SITE_URL } from "../lib/seo";
 import { renderPage } from "./render";
 
@@ -35,11 +35,13 @@ interface Target {
   sitemapAlternates?: Record<Lang, string>;
 }
 
-const fileFor = (urlPath: string) => path.join(urlPath.replace(/^\//, ""), "index.html");
+/** `/fr/` → `fr/index.html`, `/fr/a-propos` → `fr/a-propos.html` (nginx: try_files $uri.html). */
+const fileFor = (urlPath: string) =>
+  urlPath.endsWith("/") ? path.join(urlPath.slice(1), "index.html") : `${urlPath.slice(1)}.html`;
 
 async function listTargets(api: ReturnType<typeof createApiClient>): Promise<Target[]> {
   const [site, categories] = await Promise.all([api.site("fr"), api.categories("fr")]);
-  const pages: PageId[] = ["home"];
+  const pages: PageId[] = PAGE_IDS.filter((page) => page !== "careers" || site.recruitment_open);
   const targets: Target[] = [];
 
   const add = (build: (lang: Lang) => string) => {

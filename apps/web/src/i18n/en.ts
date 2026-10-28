@@ -149,7 +149,7 @@ const en: Messages = {
     tabs: "Service categories",
     book: "Book",
     bookService: "Book: {{name}}",
-    supplements: "Extras",
+    supplements: "Extras:",
     empty: "No services are offered in this category right now.",
     notFound: "This category does not exist.",
   },

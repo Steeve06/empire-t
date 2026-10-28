@@ -1,6 +1,4 @@
-import "@fontsource-variable/manrope/wght.css";
-import "@fontsource/cormorant-garamond/600.css";
-import "@fontsource/cormorant-garamond/600-italic.css";
+import "./styles/fonts.css";
 import "./styles/index.css";
 
 import { hydrate } from "@tanstack/react-query";

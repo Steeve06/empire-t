@@ -15,17 +15,16 @@ export function LanguageToggle({ className }: { className?: string }) {
       to={translatePath(pathname, search, other)}
       hrefLang={other}
       lang={other}
-      aria-label={`${other.toUpperCase()} · ${t("a11y.languageSwitch")}`}
       className={cx(
         "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-3.5 text-xs font-semibold tracking-wide hover:border-gold",
         className,
       )}
     >
       <span className={lang === "fr" ? "text-ink" : "text-muted"}>FR</span>
-      <span aria-hidden="true" className="text-line">
-        |
-      </span>
+      <span className="text-line">|</span>
       <span className={lang === "en" ? "text-ink" : "text-muted"}>EN</span>
+      {/* The accessible name starts with the visible "FR | EN" (WCAG 2.5.3, voice control). */}
+      <span className="sr-only">: {t("a11y.languageSwitch")}</span>
     </Link>
   );
 }
