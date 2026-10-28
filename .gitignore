@@ -21,6 +21,7 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.production.example
 !**/.env.example
 
 # Django runtime
@@ -36,3 +37,6 @@ apps/api/staticfiles/
 
 # Local Redis snapshots
 dump.rdb
+
+# Production backups (infra/scripts/backup.sh)
+backups/

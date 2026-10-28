@@ -8,8 +8,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "openapi-typescript openapi.yaml --output src/schema.d.ts && prettier --write src/schema.d.ts",
-    "check-generated": "openapi-typescript openapi.yaml --output /tmp/empire-schema.d.ts && prettier --write /tmp/empire-schema.d.ts >/dev/null && diff -q /tmp/empire-schema.d.ts src/schema.d.ts",
+    "generate": "openapi-typescript openapi.yaml | prettier --stdin-filepath src/schema.d.ts > src/schema.generated.tmp && mv src/schema.generated.tmp src/schema.d.ts",
+    "check-generated": "openapi-typescript openapi.yaml | prettier --stdin-filepath src/schema.d.ts | diff -q - src/schema.d.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint . && prettier --check src package.json tsconfig.json",

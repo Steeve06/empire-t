@@ -1,69 +1,86 @@
 # Empire T Barbershop & Beauty
 
-Website and back office for Empire T, Nkolmesseng, Yaoundé. *Plus qu'une coupe, une expérience.*
+Website and back office for Empire T, a barbershop, hair and beauty salon in Nkolmesseng, Yaoundé. *Plus qu'une coupe, une expérience.*
+
+- Bilingual site (French by default, English at `/en/`), pre-rendered page by page, built for mid-range Android phones on slow networks: mobile Lighthouse 98 to 100 in every category.
+- Bookings handed off to WhatsApp, with a QR code on computers; job applications with document uploads; a contact form.
+- One Django admin where the owner manages prices, services, photos, openings, bookings, applications and messages.
 
 | Path | What |
 |---|---|
-| `apps/api` | Django 5.2 + DRF API, admin, PostgreSQL, Redis cache |
-| `apps/web` | React 19 + Vite site, pre-rendered per page, French and English |
-| `packages/api-client` | OpenAPI schema (`openapi.yaml`) and generated TypeScript client |
-| `infra` | Dockerfiles, docker-compose, nginx |
-| `docs` | Decisions, assumptions, guides |
+| `apps/api` | Django 5.2 + Django REST Framework, PostgreSQL, Redis cache, admin |
+| `apps/web` | React 19 + Vite + TypeScript, Tailwind CSS 4, TanStack Query, react-i18next, React Hook Form + Zod, pre-renderer |
+| `packages/api-client` | OpenAPI schema and the TypeScript client generated from it |
+| `infra` | Dockerfiles, Compose (development, production), nginx, backup and HTTPS scripts, CI helpers |
+| `docs` | Architecture, decisions, assumptions, guides |
 
 ## Run it locally
 
 Requirements: Docker with Compose v2.
 
 ```bash
-make dev        # creates .env from .env.example, then starts db, redis, api and web
+make dev
 ```
 
-On first boot the api container migrates, loads the seed (services, prices, openings, site settings) and creates the admin account from `DJANGO_SUPERUSER_*` in `.env`.
+On the first start this creates `.env` from `.env.example`, starts PostgreSQL, Redis, the API and the site, applies migrations, loads the seed content (every service and price, the four openings, the site settings) and creates the admin account from `DJANGO_SUPERUSER_*`.
 
-- Website: http://localhost:5173/fr/ (English: /en/)
-- API: http://localhost:8000/api/v1/
-- API reference (Swagger): http://localhost:8000/api/v1/docs/
-- Admin: http://localhost:8000/admin/
+| | |
+|---|---|
+| Website | <http://localhost:5173/fr/> (English: `/en/`) |
+| Admin | <http://localhost:8000/admin/> (default login `admin` / `change-me-locally`) |
+| API reference | <http://localhost:8000/api/v1/docs/> |
 
-## Everyday commands
+The site's dev server proxies `/api`, `/admin` and `/media` to Django, so the browser sees a single origin, as in production.
 
-```bash
-make test       # backend tests with coverage, then frontend tests
-make install    # once: frontend dependencies on the host (Node 22, pnpm via corepack)
-make prerender  # production build of the site, rendered from the running API
-make lint       # ruff, black --check, mypy --strict
-make migrate    # apply migrations
-make seed       # load missing seed rows (never overwrites admin edits)
-make superuser  # create the admin account from .env
-make schema     # export packages/api-client/openapi.yaml
-```
-
-### Without Docker (backend only)
+### Without Docker
 
 ```bash
-python3.12 -m venv .venv && . .venv/bin/activate
-pip install -r apps/api/requirements/dev.txt
-cp .env.example .env   # point DATABASE_URL / REDIS_URL at localhost
+python3.12 -m venv .venv && . .venv/bin/activate && pip install -r apps/api/requirements/dev.txt
+cp .env.example .env            # point DATABASE_URL and REDIS_URL at localhost
 cd apps/api && python manage.py migrate && python manage.py seed && python manage.py runserver
-pytest                 # needs a reachable PostgreSQL (DATABASE_URL)
+# second terminal, Node 22:
+corepack enable && pnpm install && pnpm dev
 ```
 
-## API at a glance (`/api/v1/`)
+## Commands
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `site/` | Shop details, hours, social links, images, recruitment status |
-| GET | `categories/`, `categories/{slug}/` | Full price menu, services nested, starting price |
-| GET | `services/?category=&popular=` | Paginated |
-| GET | `supplements/`, `testimonials/`, `team/` | |
-| GET | `gallery/?category=&featured=` | Paginated, responsive images |
-| GET | `careers/openings/` | Empty after the recruitment deadline |
-| GET | `bookings/slots/?date=&service=` | Bookable start times |
-| POST | `bookings/` | Returns `reference` and a prefilled `whatsapp_url` |
-| POST | `careers/applications/` | multipart, one or more `files` |
-| POST | `contact/` | |
-| GET | `health/` | Liveness/readiness |
+```bash
+make test         # backend tests (PostgreSQL, coverage ≥ 90%), then frontend and client tests
+make lint         # Ruff, Black, mypy --strict · ESLint, Prettier, tsc
+make migrate      # apply migrations
+make seed         # add missing seed rows (never overwrites admin edits)
+make superuser    # create the admin account from .env
+make api-client   # export the OpenAPI schema and regenerate the TypeScript types
+make prerender    # production build of the site, rendered from the running API
+make messages     # compile the English API messages after editing the .po file
+make help         # everything else, including the prod-* commands
+```
 
-Add `?lang=en` (or send `Accept-Language: en`) for English content. Reads are cached; writes are throttled and protected by a honeypot field.
+Install the git hooks once with `pip install pre-commit && pre-commit install`.
 
-See `docs/decisions.md` for the reasoning behind the architecture and `docs/assumptions.md` for what was assumed.
+## Quality
+
+| | |
+|---|---|
+| Backend | 187 tests on PostgreSQL, 99% coverage, mypy `--strict`, Django deploy check clean |
+| Frontend | 57 tests (pages, forms, routing, formatting, API client), TypeScript strict, ESLint with accessibility rules |
+| Browser | Every page checked at 360 px and desktop, light and dark, French and English: no overflow, no console or hydration errors, no CSP violations |
+| Lighthouse (mobile) | Performance 98 to 100, Accessibility 100, Best Practices 100, SEO 100, CLS 0 on all public pages; CI fails below 90 |
+
+## Documentation
+
+| | |
+|---|---|
+| [Owner guide](docs/owner-guide.md) (French) | Editing prices, services, photos, bookings, applications, settings |
+| [Deployment guide](docs/deployment.md) | VPS setup, environment variables, HTTPS, updates, backups, monitoring |
+| [Architecture](docs/architecture.md) | Components, page delivery, caching, languages, security |
+| [API reference](docs/api.md) | Conventions, endpoints, examples |
+| [Decisions](docs/decisions.md) | Why each significant choice was made (ADR-001 to ADR-023) |
+| [Assumptions](docs/assumptions.md) | What was decided where the brief was silent, and where to change it |
+
+## Before launch
+
+- The real shop email in Admin › Paramètres du site (assumption A1).
+- The exact map pin (A2).
+- The logo files and photos: the site uses a typographic wordmark and labelled placeholders until then (A17).
+- Real testimonials and team members, if wanted: those sections stay hidden while empty (A7).

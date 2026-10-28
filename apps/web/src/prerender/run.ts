@@ -10,7 +10,7 @@
  *                      by default pages are written into dist/ itself
  *   VITE_SITE_URL      Public origin used in canonical URLs (baked in at build)
  */
-import { cp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { createApiClient, type Lang } from "@empire-t/api-client";
@@ -36,6 +36,24 @@ interface Target {
 }
 
 /** `/fr/` → `fr/index.html`, `/fr/a-propos` → `fr/a-propos.html` (nginx: try_files $uri.html). */
+/** Write then rename, so nginx never serves a half-written page while the site is refreshed. */
+async function writeAtomic(file: string, content: string): Promise<void> {
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.tmp`;
+  await writeFile(temporary, content);
+  await rename(temporary, file);
+}
+
+/**
+ * Calls the API on the internal network. Django redirects plain HTTP to HTTPS in
+ * production; this header states that the public request is HTTPS, as nginx would.
+ */
+const internalFetch: typeof fetch = (input, init) => {
+  const request = new Request(input, init);
+  request.headers.set("X-Forwarded-Proto", "https");
+  return fetch(request);
+};
+
 const fileFor = (urlPath: string) =>
   urlPath.endsWith("/") ? path.join(urlPath.slice(1), "index.html") : `${urlPath.slice(1)}.html`;
 
@@ -119,7 +137,7 @@ async function main(): Promise<void> {
   const started = Date.now();
   if (DIST !== BUILD) await cp(BUILD, DIST, { recursive: true, force: true });
   const template = await readFile(path.join(BUILD, "index.html"), "utf8");
-  const api = createApiClient({ baseUrl: API_URL });
+  const api = createApiClient({ baseUrl: API_URL, fetch: internalFetch });
   const routes = buildRoutes({ statusPages: true });
   const preloads = await fontPreloads();
   const targets = await listTargets(api);
@@ -138,14 +156,12 @@ async function main(): Promise<void> {
         () =>
           `<script type="application/json" id="${STATE_ELEMENT_ID}">${safeJson(page.state)}</script>`,
       );
-    const output = path.join(DIST, target.file);
-    await mkdir(path.dirname(output), { recursive: true });
-    await writeFile(output, document);
+    await writeAtomic(path.join(DIST, target.file), document);
     console.info(`  ${target.path} → ${target.file}`);
   }
 
-  await writeFile(path.join(DIST, "sitemap.xml"), sitemap(targets));
-  await writeFile(path.join(DIST, "robots.txt"), robots());
+  await writeAtomic(path.join(DIST, "sitemap.xml"), sitemap(targets));
+  await writeAtomic(path.join(DIST, "robots.txt"), robots());
   console.info(
     `Pre-rendered ${targets.length} pages from ${API_URL} in ${Date.now() - started} ms`,
   );

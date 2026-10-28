@@ -1,12 +1,14 @@
 SHELL := /bin/bash
 COMPOSE := docker compose --env-file .env -f infra/docker-compose.yml
+PROD := docker compose --env-file .env.production -f infra/docker-compose.prod.yml
 API := $(COMPOSE) exec api
 API_RUN := $(COMPOSE) run --rm --no-deps api
 
 .DEFAULT_GOAL := help
 .PHONY: help env dev up down logs build migrate makemigrations seed superuser bootstrap \
 	test test-api test-web lint lint-api lint-web format typecheck schema api-client shell \
-	install web-build prerender messages
+	install web-build prerender messages \
+	prod-https prod-deploy prod-bootstrap prod-logs prod-refresh prod-backup prod-restore
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[33m%-16s\033[0m %s\n", $$1, $$2}'
@@ -87,3 +89,28 @@ schema: ## Export the OpenAPI schema to packages/api-client/openapi.yaml
 
 api-client: schema ## Regenerate TypeScript types from the OpenAPI schema
 	pnpm --filter @empire-t/api-client generate
+
+# ---- Production (on the server, see docs/deployment.md) ---------------------
+prod-https: ## First start with a Let's Encrypt certificate (once per server)
+	infra/scripts/init-letsencrypt.sh
+
+prod-deploy: ## Pull the latest code, rebuild and restart with zero manual steps
+	git pull --ff-only
+	$(PROD) up -d --build --remove-orphans
+	$(PROD) ps
+
+prod-bootstrap: ## Load the seed content and create the admin account (first deploy)
+	$(PROD) exec api python manage.py seed
+	$(PROD) exec api python manage.py ensure_superuser
+
+prod-logs: ## Follow production logs
+	$(PROD) logs -f --tail=100
+
+prod-refresh: ## Re-render the static pages now (instead of waiting for the hourly run)
+	$(PROD) restart prerender
+
+prod-backup: ## Back up the database and uploaded files to backups/
+	infra/scripts/backup.sh
+
+prod-restore: ## Restore: make prod-restore DB=backups/db-....dump MEDIA=backups/media-....tar.gz
+	infra/scripts/restore.sh $(DB) $(MEDIA)

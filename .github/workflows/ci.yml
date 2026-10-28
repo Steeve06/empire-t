@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  api:
+    name: API · lint, types, tests, contract
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_DB: empire, POSTGRES_USER: empire, POSTGRES_PASSWORD: empire }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U empire" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://empire:empire@localhost:5432/empire
+      DJANGO_SECRET_KEY: ci-only-secret-key
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: apps/api/requirements/*.txt
+      - run: pip install -r requirements/dev.txt
+      - name: Ruff
+        run: ruff check .
+      - name: Black
+        run: black --check .
+      - name: mypy (strict)
+        run: mypy .
+      - name: Migrations are up to date
+        run: python manage.py makemigrations --check --dry-run
+      - name: Production settings pass Django's deployment checks
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DJANGO_SECRET_KEY: ci-only-but-long-enough-secret-key-for-the-deploy-check-0123456789
+          DJANGO_ALLOWED_HOSTS: example.test
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Tests (PostgreSQL, coverage at least 90%)
+        run: pytest
+      - name: OpenAPI schema matches packages/api-client/openapi.yaml
+        run: |
+          python manage.py spectacular --file /tmp/openapi.yaml --validate --fail-on-warn
+          diff -u ../../packages/api-client/openapi.yaml /tmp/openapi.yaml
+
+  web:
+    name: Web · lint, types, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # The runner's Node ships corepack, which provides the pnpm version pinned in package.json
+      - run: corepack enable
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript types match the OpenAPI schema
+        run: pnpm --filter @empire-t/api-client check-generated
+      - name: Type check
+        run: pnpm -r typecheck
+      - name: ESLint and Prettier
+        run: pnpm -r lint
+      - name: Tests
+        run: pnpm -r test
+      - name: Build
+        env:
+          VITE_SITE_URL: https://example.test
+        run: pnpm --filter @empire-t/web build
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: pip-audit (runtime and dev dependencies)
+        run: |
+          pip install pip-audit==2.10.1
+          pip-audit -r apps/api/requirements/base.txt -r apps/api/requirements/dev.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable
+      - name: pnpm audit (production dependencies, high and critical)
+        run: pnpm audit --prod --audit-level high
+
+  lighthouse:
+    name: Lighthouse mobile ≥ 90
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_DB: empire, POSTGRES_USER: empire, POSTGRES_PASSWORD: empire }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U empire" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgres://empire:empire@localhost:5432/empire
+      REDIS_URL: redis://localhost:6379/0
+      DJANGO_SECRET_KEY: ci-only-secret-key
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      VITE_SITE_URL: http://localhost:4173
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: apps/api/requirements/*.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable
+      - run: pip install -r apps/api/requirements/base.txt
+      - run: pnpm install --frozen-lockfile
+      - name: Start the API with the seed content
+        working-directory: apps/api
+        run: |
+          python manage.py migrate --noinput
+          python manage.py seed
+          nohup python manage.py runserver 8000 --noreload > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/api/v1/health/ && break; sleep 1; done
+      - name: Build and pre-render the site
+        run: |
+          pnpm --filter @empire-t/web build
+          pnpm --filter @empire-t/web prerender
+      - name: Serve the production build
+        working-directory: apps/web
+        run: |
+          nohup pnpm exec vite preview --port 4173 --strictPort > /tmp/preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173/fr/ > /dev/null && break; sleep 1; done
+      - name: Audit pages
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: >
+          node infra/ci/lighthouse.mjs http://localhost:4173
+          /fr/ /en/ /fr/a-propos /fr/services/men /en/gallery /fr/reserver /en/careers /fr/contact /404.html
+      - name: Logs on failure
+        if: failure()
+        run: tail -n 50 /tmp/api.log /tmp/preview.log
+
+  docker:
+    name: Docker images build
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: API (production target)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/api.Dockerfile
+          target: prod
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Web pre-renderer (production target)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/web.Dockerfile
+          target: prerender
+          push: false
+          build-args: VITE_SITE_URL=https://example.test
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

@@ -35,8 +35,20 @@ repos:
         pass_filenames: false
         files: ^apps/api/.*\.py$
       - id: web-lint
-        name: eslint + prettier + tsc (web)
+        name: eslint + prettier + tsc (web, api-client)
         entry: bash -c 'pnpm -r lint && pnpm -r typecheck'
         language: system
         pass_filenames: false
-        files: ^(apps/web|packages)/.*\.(ts|tsx|css|json)$
+        files: ^(apps/web|packages)/.*\.(ts|tsx|css|json|html)$
+      - id: api-contract
+        name: TypeScript types match openapi.yaml
+        entry: pnpm --filter @empire-t/api-client check-generated
+        language: system
+        pass_filenames: false
+        files: ^packages/api-client/(openapi\.yaml|src/schema\.d\.ts)$
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [-x]

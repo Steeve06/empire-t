@@ -1,0 +1,120 @@
+# Production stack for a single small VPS (assumption A13). See docs/deployment.md.
+#   docker compose --env-file .env.production -f infra/docker-compose.prod.yml up -d --build
+#
+#   nginx      public entry point: TLS, static site, proxy to the API, media
+#   api        Django + gunicorn (migrates on start)
+#   prerender  renders every page from the API into the `site` volume, then again every hour
+#   db, redis  PostgreSQL 16 and Redis 7, reachable only inside the stack
+#   certbot    renews the Let's Encrypt certificate twice a day
+name: empire-t-prod
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  db:
+    <<: *restart
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-empire}
+      POSTGRES_USER: ${POSTGRES_USER:-empire}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    <<: *restart
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+      target: prod
+    env_file: ../.env.production
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DATABASE_URL: postgres://${POSTGRES_USER:-empire}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-empire}
+      REDIS_URL: redis://redis:6379/0
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             exec gunicorn config.wsgi:application --config gunicorn.conf.py"
+    volumes:
+      - media:/app/media
+      - private_media:/app/private_media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  prerender:
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+      target: prerender
+      args:
+        VITE_SITE_URL: https://${DOMAIN:?set DOMAIN in .env.production}
+    environment:
+      PRERENDER_API_URL: http://api:8000
+      SITE_OUTPUT_DIR: /site
+      PRERENDER_INTERVAL_SECONDS: ${PRERENDER_INTERVAL_SECONDS:-3600}
+    # Re-render every hour so prices and openings edited in the admin reach the static
+    # pages (visitors' browsers already refresh the data on every visit, ADR-013).
+    command: >
+      sh -c "while true; do node dist-ssr/run.js; sleep $${PRERENDER_INTERVAL_SECONDS:-3600}; done"
+    volumes:
+      - site:/site
+    depends_on:
+      api: { condition: service_healthy }
+
+  nginx:
+    <<: *restart
+    image: nginx:stable-alpine
+    environment:
+      DOMAIN: ${DOMAIN}
+      NGINX_ENVSUBST_FILTER: ^DOMAIN$$
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - ./nginx/entrypoint/40-reload-certificates.sh:/docker-entrypoint.d/40-reload-certificates.sh:ro
+      - site:/usr/share/nginx/html:ro
+      - media:/srv/media:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      api: { condition: service_healthy }
+      prerender: { condition: service_started }
+
+  certbot:
+    <<: *restart
+    image: certbot/certbot:latest
+    entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"]
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+volumes:
+  pgdata:
+  media:
+  private_media:
+  site:
+  certbot_conf:
+  certbot_www:

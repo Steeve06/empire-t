@@ -4,8 +4,9 @@ import { useLang } from "../../lib/lang";
 import { pathFor } from "../../lib/paths";
 
 /**
- * Typographic wordmark. When the owner's logo file arrives, place it at
- * `public/logo.svg` and replace the two spans with an <img> (see the owner guide).
+ * Typographic wordmark until the owner's logo arrives (assumption A17). Then put the
+ * SVG in `public/logo.svg` and render it here as an <img> with width and height set,
+ * keeping the business name as its alt text.
  */
 export function Logo({ name, subtitle }: { name: string; subtitle: string }) {
   const lang = useLang();
