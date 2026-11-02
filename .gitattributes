@@ -1,0 +1,8 @@
+# Everything runs in Linux containers: keep LF line endings even on Windows checkouts
+# (a shell script with CRLF fails with "bad interpreter" inside Docker).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff2 binary
+*.mo binary
