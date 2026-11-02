@@ -71,6 +71,8 @@ def test_unexpected_exception_in_a_view_returns_json_500(rf, caplog) -> None:
 
 
 def test_cors_allows_only_configured_origins(client, seeded, settings) -> None:
+    # Set here, not read from the developer's .env, so the test means the same everywhere
+    settings.CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
     allowed = client.get("/api/v1/site/", HTTP_ORIGIN="http://localhost:5173")
     assert allowed["Access-Control-Allow-Origin"] == "http://localhost:5173"
 
