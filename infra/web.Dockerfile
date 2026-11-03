@@ -43,6 +43,9 @@ FROM node:${NODE_VERSION}-slim AS prerender
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/dist ./dist
 COPY --from=build --chown=node:node /repo/apps/web/dist-ssr ./dist-ssr
+# The shared `site` volume is mounted here. Docker initialises a new named volume from
+# the image's directory, owner included, so the non-root renderer can write to it.
+RUN mkdir -p /site && chown node:node /site
 USER node
 ENV PRERENDER_API_URL=http://api:8000 SITE_OUTPUT_DIR=/site
 CMD ["node", "dist-ssr/run.js"]

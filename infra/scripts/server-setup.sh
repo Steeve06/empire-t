@@ -111,6 +111,9 @@ main() {
   log "Firewall and memory"
   open_firewall
   add_swap_if_small
+  # Recommended by Redis for reliable memory allocation
+  echo 'vm.overcommit_memory = 1' > /etc/sysctl.d/90-redis.conf
+  sysctl -q -p /etc/sysctl.d/90-redis.conf
 
   log "Docker"
   if ! command -v docker > /dev/null; then
