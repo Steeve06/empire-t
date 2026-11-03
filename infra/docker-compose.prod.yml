@@ -61,6 +61,15 @@ services:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
 
+  # One-off: give the shared `site` volume to the renderer's non-root user (node, uid 1000).
+  # Docker creates new volumes owned by root, and the renderer must not run as root.
+  site-permissions:
+    image: busybox:stable
+    command: ["chown", "1000:1000", "/site"]
+    volumes:
+      - site:/site
+    restart: "no"
+
   prerender:
     <<: *restart
     build:
@@ -84,6 +93,7 @@ services:
       - site:/site
     depends_on:
       api: { condition: service_healthy }
+      site-permissions: { condition: service_completed_successfully }
 
   nginx:
     <<: *restart
