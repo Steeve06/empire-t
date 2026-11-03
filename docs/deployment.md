@@ -24,6 +24,7 @@ Any VPS works (Hetzner, DigitalOcean, OVHcloud, Contabo, a Cameroonian host). A 
 ```bash
 # As root on a fresh server
 apt update && apt upgrade -y
+apt install -y git make
 curl -fsSL https://get.docker.com | sh                 # Docker Engine + Compose plugin
 adduser --disabled-password --gecos "" deploy && usermod -aG docker deploy
 ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw --force enable
@@ -39,6 +40,8 @@ At your DNS provider, point both names at the server's IPv4 address:
 | A | `www` | server IP |
 
 Wait until `dig +short empire-t.cm` returns the IP before requesting the certificate.
+
+**No domain yet?** Use the free address `<server-ip-with-dashes>.sslip.io`, which always points at that IP. For a server at `203.0.113.10`, set `DOMAIN=203-0-113-10.sslip.io` (and the same in `DJANGO_ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `ADMIN_URL_BASE`). HTTPS works the same way. When the real domain arrives, change these values, run `make prod-https` again, then `make prod-deploy`.
 
 ## 3. First install
 
