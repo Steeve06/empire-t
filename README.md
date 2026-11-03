@@ -73,6 +73,7 @@ Install the git hooks once with `pip install pre-commit && pre-commit install`.
 |---|---|
 | [Owner guide](docs/owner-guide.md) (French) | Editing prices, services, photos, bookings, applications, settings |
 | [Deployment guide](docs/deployment.md) | VPS setup, environment variables, HTTPS, updates, backups, monitoring |
+| [Oracle Cloud (free)](docs/deploy-oracle.md) | Step by step on Oracle's Always Free ARM server, one-command install |
 | [Architecture](docs/architecture.md) | Components, page delivery, caching, languages, security |
 | [API reference](docs/api.md) | Conventions, endpoints, examples |
 | [Decisions](docs/decisions.md) | Why each significant choice was made (ADR-001 to ADR-023) |

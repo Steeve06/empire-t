@@ -1,5 +1,7 @@
 # Deployment guide
 
+> **Oracle Cloud free tier:** follow [deploy-oracle.md](deploy-oracle.md). It is the same stack, installed with one command.
+
 Production runs as one Docker Compose stack on a small Linux server (assumption A13): nginx with Let's Encrypt HTTPS, Django under gunicorn, PostgreSQL 16, Redis 7, and a pre-renderer that refreshes the static pages every hour. Expect about 15 to 20 minutes for a first install.
 
 ```

@@ -75,8 +75,11 @@ services:
       PRERENDER_INTERVAL_SECONDS: ${PRERENDER_INTERVAL_SECONDS:-3600}
     # Re-render every hour so prices and openings edited in the admin reach the static
     # pages (visitors' browsers already refresh the data on every visit, ADR-013).
+    # After a failure (API still starting, database not seeded yet) retry in a minute.
     command: >
-      sh -c "while true; do node dist-ssr/run.js; sleep $${PRERENDER_INTERVAL_SECONDS:-3600}; done"
+      sh -c "while true; do
+               if node dist-ssr/run.js; then sleep $${PRERENDER_INTERVAL_SECONDS:-3600}; else sleep 60; fi;
+             done"
     volumes:
       - site:/site
     depends_on:

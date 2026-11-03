@@ -168,9 +168,15 @@ jobs:
         run: tail -n 50 /tmp/api.log /tmp/preview.log
 
   docker:
-    name: Docker images build
+    name: Docker images build (${{ matrix.arch }})
     needs: [api, web]
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-latest }
+          # Oracle Cloud's free servers are ARM (Ampere A1)
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
@@ -181,8 +187,8 @@ jobs:
           file: infra/api.Dockerfile
           target: prod
           push: false
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
+          cache-from: type=gha,scope=api-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=api-${{ matrix.arch }}
       - name: Web pre-renderer (production target)
         uses: docker/build-push-action@v6
         with:
@@ -191,8 +197,8 @@ jobs:
           target: prerender
           push: false
           build-args: VITE_SITE_URL=https://example.test
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+          cache-from: type=gha,scope=web-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=web-${{ matrix.arch }}
 
   dev-stack:
     name: make dev starts the whole stack
@@ -216,3 +222,57 @@ jobs:
       - name: Logs
         if: always()
         run: docker compose --env-file .env -f infra/docker-compose.yml logs --tail=60
+
+  prod-stack:
+    name: Production stack runs (${{ matrix.arch }})
+    needs: [api, web]
+    strategy:
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-latest }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    env:
+      COMPOSE: docker compose --env-file .env.production -f infra/docker-compose.prod.yml
+    steps:
+      - uses: actions/checkout@v5
+      - name: Production configuration for https://localhost
+        run: |
+          cp .env.production.example .env.production
+          sed -i \
+            -e 's|^DOMAIN=.*|DOMAIN=localhost|' \
+            -e 's|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=ci-database-password|' \
+            -e 's|^DJANGO_SECRET_KEY=.*|DJANGO_SECRET_KEY=ci-only-but-long-enough-secret-key-0123456789abcdef|' \
+            -e 's|^DJANGO_ALLOWED_HOSTS=.*|DJANGO_ALLOWED_HOSTS=localhost,www.localhost,api,127.0.0.1|' \
+            -e 's|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://localhost|' \
+            -e 's|^DJANGO_SUPERUSER_PASSWORD=.*|DJANGO_SUPERUSER_PASSWORD=ci-admin-password|' \
+            .env.production
+      - name: Self-signed certificate in place of Let's Encrypt (same paths)
+        run: |
+          live=/etc/letsencrypt/live/localhost
+          $COMPOSE run --rm --entrypoint sh certbot -c "mkdir -p $live && openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=localhost -keyout $live/privkey.pem -out $live/fullchain.pem"
+      - name: Start, seed and render (as make prod-https, prod-bootstrap, prod-refresh)
+        run: |
+          $COMPOSE up -d --build
+          for i in $(seq 1 60); do $COMPOSE ps api | grep -q healthy && break; sleep 3; done
+          make prod-bootstrap
+          make prod-refresh
+          for i in $(seq 1 60); do curl -skf https://localhost/fr/ | grep -q __EMPIRE_STATE__ && break; sleep 3; done
+      - name: Pages, API, admin and headers through nginx
+        run: |
+          set -x
+          curl -skf https://localhost/fr/ | grep -q "Plus qu'une coupe"
+          curl -skf https://localhost/en/services/men | grep -q "Skin Fade"
+          curl -skf https://localhost/fr/a-propos | grep -q __EMPIRE_STATE__
+          curl -skf https://localhost/api/v1/health/ | grep -q '"database":"ok"'
+          curl -skf -o /dev/null https://localhost/admin/login/
+          curl -skf -o /dev/null https://localhost/static/admin/css/base.css
+          curl -skf https://localhost/sitemap.xml | grep -q "https://localhost/en/services/beauty"
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/fr/nope)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/fr/)" = 301
+          curl -skI https://localhost/fr/ | grep -qi "content-security-policy: default-src 'self'; script-src 'self'"
+          curl -sk -X POST -H "Content-Type: application/json" -d '{}' https://localhost/api/v1/bookings/ | grep -q "service"
+      - name: Logs
+        if: always()
+        run: $COMPOSE logs --tail=40
+

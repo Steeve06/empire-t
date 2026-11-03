@@ -100,8 +100,8 @@ prod-deploy: ## Pull the latest code, rebuild and restart with zero manual steps
 	$(PROD) ps
 
 prod-bootstrap: ## Load the seed content and create the admin account (first deploy)
-	$(PROD) exec api python manage.py seed
-	$(PROD) exec api python manage.py ensure_superuser
+	$(PROD) exec -T api python manage.py seed
+	$(PROD) exec -T api python manage.py ensure_superuser
 
 prod-logs: ## Follow production logs
 	$(PROD) logs -f --tail=100
