@@ -171,6 +171,7 @@ jobs:
     name: Docker images build (${{ matrix.arch }})
     needs: [api, web]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { arch: amd64, runner: ubuntu-latest }
@@ -227,6 +228,7 @@ jobs:
     name: Production stack runs (${{ matrix.arch }})
     needs: [api, web]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { arch: amd64, runner: ubuntu-latest }
@@ -262,7 +264,7 @@ jobs:
         run: |
           set -x
           curl -skf https://localhost/fr/ | grep -q "Plus qu'une coupe"
-          curl -skf https://localhost/en/services/men | grep -q "Skin Fade"
+          curl -skf https://localhost/en/services/men | grep -q "Skin fade"
           curl -skf https://localhost/fr/a-propos | grep -q __EMPIRE_STATE__
           curl -skf https://localhost/api/v1/health/ | grep -q '"database":"ok"'
           curl -skf -o /dev/null https://localhost/admin/login/
