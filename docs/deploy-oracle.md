@@ -17,7 +17,7 @@ You need a credit or debit card for Oracle's identity check. Always Free resourc
 | Setting | Value |
 |---|---|
 | Name | `empire-t` |
-| Image | **Canonical Ubuntu 24.04** (click *Change image*) |
+| Image | **Canonical Ubuntu 24.04** (click *Change image* › *Ubuntu*). Not the default Oracle Linux: if the instance page shows the username `opc`, the image is wrong. |
 | Shape | *Change shape* › **Ampere** › **VM.Standard.A1.Flex**, **2 OCPUs**, **12 GB** memory |
 | Networking | Keep the defaults: new virtual cloud network, **public subnet**, *Assign a public IPv4 address* checked |
 | SSH keys | **Generate a key pair for me** › **Save private key**. Keep this file safe: it is the only way in. |

@@ -58,6 +58,8 @@ write_env() {
   set_env ADMIN_URL_BASE "https://$domain" "$file"
   set_env DJANGO_SUPERUSER_EMAIL "$email" "$file"
   set_env DJANGO_SUPERUSER_PASSWORD "$admin_password" "$file"
+  # Each gunicorn worker holds a copy of Django in memory (about 80 MB)
+  if (( $(memory_mb) < 1500 )); then set_env GUNICORN_WORKERS 2 "$file"; fi
 }
 
 open_firewall() {
@@ -76,13 +78,17 @@ open_firewall() {
   fi
 }
 
+memory_mb() { awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo; }
+
 add_swap_if_small() {
-  local mem_kb
-  mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-  if (( mem_kb < 3 * 1024 * 1024 )) && ! swapon --show | grep -q .; then
-    fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile > /dev/null && swapon /swapfile
+  local mem size
+  mem=$(memory_mb)
+  if (( mem < 3000 )) && ! swapon --show | grep -q .; then
+    # 1 GB servers (Oracle E2.1.Micro) need more room to build the images
+    size=$(( mem < 1500 ? 4 : 2 ))
+    fallocate -l "${size}G" /swapfile && chmod 600 /swapfile && mkswap /swapfile > /dev/null && swapon /swapfile
     grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
-    echo "Added 2 GB of swap (the server has less than 3 GB of memory)"
+    echo "Added ${size} GB of swap (the server has ${mem} MB of memory)"
   fi
 }
 
@@ -97,6 +103,13 @@ parse_args() {
   done
   [[ -n $EMAIL ]] || usage
   [[ $EUID -eq 0 ]] || { echo "Run as root (sudo)."; exit 1; }
+  if ! grep -qE '^ID(_LIKE)?=.*(ubuntu|debian)' /etc/os-release; then
+    echo "This script needs Ubuntu (22.04 or 24.04). This server runs:"
+    grep -E '^PRETTY_NAME=' /etc/os-release | cut -d= -f2-
+    echo "On Oracle Cloud the login user is then 'opc': recreate the instance with the"
+    echo "'Canonical Ubuntu 24.04' image (its login user is 'ubuntu')."
+    exit 1
+  fi
 }
 
 main() {
@@ -140,8 +153,13 @@ main() {
   write_env "$APP_DIR/.env.production" "$DOMAIN" "$EMAIL"
   chown -R "$OWNER:$OWNER" "$APP_DIR"
 
-  log "HTTPS certificate and first start (the first build takes 5 to 15 minutes)"
   cd "$APP_DIR"
+  log "Building the images, one at a time (10 to 40 minutes on a small server)"
+  local compose=(docker compose --env-file .env.production -f infra/docker-compose.prod.yml)
+  "${compose[@]}" build api
+  "${compose[@]}" build prerender
+
+  log "HTTPS certificate and first start"
   infra/scripts/init-letsencrypt.sh
 
   log "Content and pages"
