@@ -19,8 +19,20 @@ STAGING=()
 [[ ${LETSENCRYPT_STAGING:-false} == true ]] && STAGING=(--staging)
 LIVE=/etc/letsencrypt/live/$DOMAIN
 
+# A real certificate already issued for this domain (a re-run): keep it, so repeated
+# runs never hit Let's Encrypt's limit on duplicate certificates. FORCE_NEW_CERT=true
+# requests a new one anyway.
+if [[ ${FORCE_NEW_CERT:-false} != true ]] &&
+  "${COMPOSE[@]}" run --rm -T --entrypoint sh certbot -c "test -f /etc/letsencrypt/renewal/$DOMAIN.conf"; then
+  echo "==> Certificate for $DOMAIN already issued: keeping it"
+  "${COMPOSE[@]}" up -d --build
+  "${COMPOSE[@]}" exec -T nginx nginx -s reload
+  echo "Done: https://$DOMAIN"
+  exit 0
+fi
+
 echo "==> Temporary certificate for $DOMAIN"
-"${COMPOSE[@]}" run --rm --entrypoint sh certbot -c "
+"${COMPOSE[@]}" run --rm -T --entrypoint sh certbot -c "
   mkdir -p $LIVE &&
   openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=localhost \
     -keyout $LIVE/privkey.pem -out $LIVE/fullchain.pem"
@@ -29,12 +41,12 @@ echo "==> Starting the stack"
 "${COMPOSE[@]}" up -d --build
 
 echo "==> Requesting the Let's Encrypt certificate"
-"${COMPOSE[@]}" run --rm --entrypoint sh certbot -c "
+"${COMPOSE[@]}" run --rm -T --entrypoint sh certbot -c "
   rm -rf /etc/letsencrypt/live/$DOMAIN /etc/letsencrypt/archive/$DOMAIN /etc/letsencrypt/renewal/$DOMAIN.conf"
-"${COMPOSE[@]}" run --rm --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
+"${COMPOSE[@]}" run --rm -T --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
   "${STAGING[@]}" --email "$LETSENCRYPT_EMAIL" --agree-tos --no-eff-email --non-interactive \
   -d "$DOMAIN" -d "www.$DOMAIN"
 
 echo "==> Reloading nginx"
-"${COMPOSE[@]}" exec nginx nginx -s reload
+"${COMPOSE[@]}" exec -T nginx nginx -s reload
 echo "Done: https://$DOMAIN"
