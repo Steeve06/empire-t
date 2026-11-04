@@ -110,6 +110,16 @@ parse_args() {
     echo "'Canonical Ubuntu 24.04' image (its login user is 'ubuntu')."
     exit 1
   fi
+  # Ubuntu 20.04 and older no longer get security updates, and Docker's installer
+  # refuses them: stop before changing anything.
+  local id version
+  id=$(. /etc/os-release && echo "$ID")
+  version=$(. /etc/os-release && echo "${VERSION_ID:-0}")
+  if [[ $id == ubuntu ]] && (( ${version%%.*} < 22 )); then
+    echo "This server runs Ubuntu $version, which no longer receives security updates."
+    echo "Recreate it with the 'Canonical Ubuntu 24.04' image, then run this command again."
+    exit 1
+  fi
 }
 
 main() {
