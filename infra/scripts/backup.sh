@@ -10,10 +10,9 @@ set -euo pipefail
 
 ENV_FILE=.env.production
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f infra/docker-compose.prod.yml)
-set -a
-# shellcheck disable=SC1090  # the env file path is chosen at run time
-source "$ENV_FILE"
-set +a
+# shellcheck source=infra/scripts/lib-env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib-env.sh"
+load_env "$ENV_FILE"
 
 DEST=${BACKUP_DIR:-backups}
 KEEP_DAYS=${BACKUP_KEEP_DAYS:-14}

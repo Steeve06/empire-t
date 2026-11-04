@@ -10,10 +10,9 @@ ENV_FILE=.env.production
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f infra/docker-compose.prod.yml)
 
 [[ -f $ENV_FILE ]] || { echo "Missing $ENV_FILE (copy .env.production.example)"; exit 1; }
-set -a
-# shellcheck disable=SC1090  # the env file path is chosen at run time
-source "$ENV_FILE"
-set +a
+# shellcheck source=infra/scripts/lib-env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib-env.sh"
+load_env "$ENV_FILE"
 : "${DOMAIN:?DOMAIN must be set in $ENV_FILE}"
 : "${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL must be set in $ENV_FILE}"
 STAGING=()

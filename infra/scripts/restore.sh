@@ -7,10 +7,9 @@ DB_DUMP=${1:?usage: restore.sh <db-dump> [media-archive]}
 MEDIA_ARCHIVE=${2:-}
 ENV_FILE=.env.production
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f infra/docker-compose.prod.yml)
-set -a
-# shellcheck disable=SC1090  # the env file path is chosen at run time
-source "$ENV_FILE"
-set +a
+# shellcheck source=infra/scripts/lib-env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib-env.sh"
+load_env "$ENV_FILE"
 
 read -r -p "This replaces the live database${MEDIA_ARCHIVE:+ and media}. Type RESTORE to continue: " answer
 [[ $answer == RESTORE ]] || { echo "Cancelled."; exit 1; }
